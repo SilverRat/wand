@@ -14,8 +14,8 @@ function Point(x, y) // constructor
 }
 
 var DS1621_ADDR = 0x58,
-  x = 0,
-  devices,
+  devices,  // i2cbus devices
+  queue = [],
   bfr = new Uint8Array(16),
   Ix = new Uint16Array(4),
   Iy = new Uint16Array(4);
@@ -37,20 +37,14 @@ console.log(result);
 
 (function () {
  
-   console.log('i2cdetect');
-   devices = i2c1.scanSync();
-   console.log(devices[0] + ' decimal ' + devices[0].toString(16) + ' hex');
+    console.log('i2cdetect');
+    devices = i2c1.scanSync();
+    console.log(devices[0] + ' decimal ' + devices[0].toString(16) + ' hex');
     // 88dec, 58hex 1011000 bin
     // left shift 1 10110000 bin  176 dec B0 hex
-   console.log('Starting');
+    console.log('Starting');
  
     console.log(DS1621_ADDR << 1);
-
-    //var send = new Uint8Array(2);
-    //send[0] = 0x30;
-    //send[1] = 0x01;
-    //i2c1.i2cWriteSync(DS1621_ADDR,2,send);
-    //console.log('buffer length: ' + send.length);
     
     i2c1.writeByteSync(DS1621_ADDR,0x30,0x01);
     i2c1.writeByteSync(DS1621_ADDR,0x30,0x08);
@@ -61,19 +55,14 @@ console.log(result);
  
     console.log('Init done');
 
-    //i2c1.writeByteSync(DS1621_ADDR, 0x36, 0x00);
-    //i2c1.sendByteSync(DS1621_ADDR, 0x36);
+    while (true){ // Maybe make the loop break and shutdown on an exit gesture?
 
-    //bfr = i2c1.readByteSync(0x58, 0x36);
-    Ix[0] = 1023;
-    while (Ix[0] == 1023){
-
-        for(var i =0;i < 16;i++){
+        for(let i =0;i < 16;i++){
             bfr[i] = 0;
         }
 
         i2c1.readI2cBlockSync(DS1621_ADDR, 0x36, 16, bfr);
-        //console.log(bfr);
+        // console.log(bfr);
 
         Ix[0] = bfr[1];
         Iy[0] = bfr[2];
@@ -99,9 +88,17 @@ console.log(result);
         Ix[3] += (s & 0x30) <<4;
         Iy[3] += (s & 0xC0) <<2;
 
-        if(Ix[0] < 1023){
-            console.log('Reg 1: ' + Ix[0] + ',' + Iy[0] + ' Reg 2: ' + Ix[1] + ',' + Iy[1] + ' Reg 3: ' + Ix[2] + ',' + Iy[2] + ' Reg 4: ' + Ix[3] + ',' + Iy[3]);
-            Ix[0] = 1023;
+        for (let i = 0; i < 4; i++){        
+            if(Ix[i] < 1023){
+                queue.push ({time: new Date() , point: new Point(Ix[i], Iy[i])});
+                console.log (JSON.stringify(queue[queue.length -1]));
+                console.log('Reg 1: ' + Ix[0] + ',' + Iy[0] + ' Reg 2: ' + Ix[1] + ',' + Iy[1] + ' Reg 3: ' + Ix[2] + ',' + Iy[2] + ' Reg 4: ' + Ix[3] + ',' + Iy[3]);
+                break;
+            }
+
+        // should we try to recognize the queue?
+
+        // should we shift the queue?
         }
     } 
 
