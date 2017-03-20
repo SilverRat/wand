@@ -13,9 +13,11 @@ function Point(x, y) // constructor
 	this.Y = y;
 }
 
+const minGestureTime = 2500 //milliseconds to buffer points for a gesture.
 var DS1621_ADDR = 0x58,
   devices,  // i2cbus devices
   queue = [],
+  running = true;
   bfr = new Uint8Array(16),
   Ix = new Uint16Array(4),
   Iy = new Uint16Array(4);
@@ -55,7 +57,7 @@ console.log(result);
  
     console.log('Init done');
 
-    while (true){ // Maybe make the loop break and shutdown on an exit gesture?
+    while (running){ // Maybe make the loop break and shutdown on an exit gesture?
 
         for(let i =0;i < 16;i++){
             bfr[i] = 0;
@@ -92,15 +94,30 @@ console.log(result);
             if(Ix[i] < 1023){
                 queue.push ({time: new Date() , point: new Point(Ix[i], Iy[i])});
                 console.log (JSON.stringify(queue[queue.length -1]));
-                console.log('Reg 1: ' + Ix[0] + ',' + Iy[0] + ' Reg 2: ' + Ix[1] + ',' + Iy[1] + ' Reg 3: ' + Ix[2] + ',' + Iy[2] + ' Reg 4: ' + Ix[3] + ',' + Iy[3]);
+                //console.log('Reg 1: ' + Ix[0] + ',' + Iy[0] + ' Reg 2: ' + Ix[1] + ',' + Iy[1] + ' Reg 3: ' + Ix[2] + ',' + Iy[2] + ' Reg 4: ' + Ix[3] + ',' + Iy[3]);
                 break;
             }
 
-        // should we try to recognize the queue?
+        // If we have waited long enought, we try to recognize the queue
+        var latestTimeStamp = queue(queue.length-1).time.getTime();
+        if (latestTimeStamp - queue(0).time.getTime() > minGestureTime){        
+            var pointsbfr =queue.map(function(p) {return p.point;});
+            var result = recognize.Recognize(pointsbfr);
 
-        // should we shift the queue?
-        }
+            //If we have a good result - Jackpot
+            if (result.Score > .85){
+                console.log(result.Name + " recognized with a confidence of " + result.Score);
+                queue.length = 0; //empy the queue.
+                running = false;
+            }
+            else{  // check to see if we should we shift the queue.
+                for(let j = 0; j < queue.length; j++){
+                    if (latetTimeStamp - queue(j).time.getTime() < minGestureTime){
+                        queue.splice(0,j-1);
+                        j=queue.length;  //Short Circuit the for loop
+                    }                            }              
+            }
+        } //End Recognition attempt
     } 
-
     i2c1.closeSync();
 }());
