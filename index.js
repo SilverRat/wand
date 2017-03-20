@@ -1,19 +1,16 @@
-//Notes: Update dollar.js with constructor.  Update export.js with init parameter
-
-
 var i2c = require('i2c-bus'),
   i2c1 = i2c.openSync(1);
 
 //
 // Point class
 //
-function Point(x, y) // constructor
+function Point(x, y) // Point object from one-dolla
 {
 	this.X = x;
 	this.Y = y;
 }
 
-const minGestureTime = 2500 //milliseconds to buffer points for a gesture.
+const minGestureTime = 2500 // milliseconds to buffer points for a gesture.
 var DS1621_ADDR = 0x58,
   devices,  // i2cbus devices
   queue = [],
@@ -57,7 +54,7 @@ console.log(result);
  
     console.log('Init done');
 
-    while (running){ // Maybe make the loop break and shutdown on an exit gesture?
+    while (running){ // ToDo: Maybe make the loop break and shutdown on an exit gesture?
 
         for(let i =0;i < 16;i++){
             bfr[i] = 0;
@@ -98,26 +95,30 @@ console.log(result);
                 break;
             }
 
-        // If we have waited long enought, we try to recognize the queue
-        var latestTimeStamp = queue(queue.length-1).time.getTime();
-        if (latestTimeStamp - queue(0).time.getTime() > minGestureTime){        
-            var pointsbfr =queue.map(function(p) {return p.point;});
-            var result = recognize.Recognize(pointsbfr);
+            // If we have waited long enought, we try to recognize the queue
+            var latestTimeStamp = queue[queue.length-1].time.getTime();
+            if (latestTimeStamp - queue[0].time.getTime() > minGestureTime){        
+                var pointsbfr =queue.map(function(p) {return p.point;});
+                var result = recognize.Recognize(pointsbfr);
 
-            //If we have a good result - Jackpot
-            if (result.Score > .85){
-                console.log(result.Name + " recognized with a confidence of " + result.Score);
-                queue.length = 0; //empy the queue.
-                running = false;
-            }
-            else{  // check to see if we should we shift the queue.
-                for(let j = 0; j < queue.length; j++){
-                    if (latetTimeStamp - queue(j).time.getTime() < minGestureTime){
-                        queue.splice(0,j-1);
-                        j=queue.length;  //Short Circuit the for loop
-                    }                            }              
-            }
-        } //End Recognition attempt
-    } 
-    i2c1.closeSync();
+                // If we have a good result - Jackpot
+                if (result.Score > .85){
+                    console.log(result.Name + " recognized with a confidence of " + result.Score);
+                    queue.length = 0; //empy the queue.
+                    running = false;
+                }
+                else{  // check to see if we should we shift the queue.
+                    for(let j = 0; j < queue.length; j++){
+                        if (latetTimeStamp - queue[j].time.getTime() < minGestureTime){
+                            if (j>0) { // Check for the special case where we just started recognizing
+                                queue.splice(0,j-1);
+                                j=queue.length;  // Short Circuit the for loop
+                            }
+                        }                            
+                    }              
+                }
+            } // End if to process a minimally populated buffer of points
+        } // End for loop to evaluation led sensor input
+    } // End while
+    i2c1.closeSync();
 }());
