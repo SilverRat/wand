@@ -95,29 +95,31 @@ console.log(result);
                 break;
             }
 
-            // If we have waited long enought, we try to recognize the queue
-            var latestTimeStamp = queue[queue.length-1].time.getTime();
-            if (latestTimeStamp - queue[0].time.getTime() > minGestureTime){        
-                var pointsbfr =queue.map(function(p) {return p.point;});
-                var result = recognize.Recognize(pointsbfr);
+            if (queue.length > 0){
+                // If we have waited long enought, we try to recognize the queue
+                var latestTimeStamp = queue[queue.length-1].time.getTime();
+                if (latestTimeStamp - queue[0].time.getTime() > minGestureTime){        
+                    var pointsbfr =queue.map(function(p) {return p.point;});
+                    var result = recognize.Recognize(pointsbfr);
 
-                // If we have a good result - Jackpot
-                if (result.Score > .85){
-                    console.log(result.Name + " recognized with a confidence of " + result.Score);
-                    queue.length = 0; //empy the queue.
-                    running = false;
-                }
-                else{  // check to see if we should we shift the queue.
-                    for(let j = 0; j < queue.length; j++){
-                        if (latetTimeStamp - queue[j].time.getTime() < minGestureTime){
-                            if (j>0) { // Check for the special case where we just started recognizing
-                                queue.splice(0,j-1);
-                                j=queue.length;  // Short Circuit the for loop
-                            }
-                        }                            
-                    }              
-                }
-            } // End if to process a minimally populated buffer of points
+                    // If we have a good result - Jackpot
+                    if (result.Score > .85){
+                        console.log(result.Name + " recognized with a confidence of " + result.Score);
+                        queue.length = 0; //empy the queue.
+                        running = false;
+                    }
+                    else{  // check to see if we should we shift the queue.
+                        for(let j = 0; j < queue.length; j++){
+                            if (latestTimeStamp - queue[j].time.getTime() < minGestureTime){
+                                if (j>0) { // Check for the special case where we just started recognizing
+                                    queue.splice(0,j-1);
+                                    j=queue.length;  // Short Circuit the for loop
+                                }
+                            }                            
+                        }              
+                    }
+                } // End if to process a minimally populated buffer of points
+            } // End if for queue.length
         } // End for loop to evaluation led sensor input
     } // End while
     i2c1.closeSync();
