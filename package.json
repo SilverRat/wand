@@ -10,7 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "i2c-bus": "^1.2.0",
-    "one-dolla": "git+https://github.com/SilverRat/one-dolla.git"
+    "one-dolla": "git+https://github.com/SilverRat/one-dolla.git",
+    "winston": "^2.3.1"
   },
   "devDependencies": {
     "eslint": "^3.19.0",

@@ -1,5 +1,13 @@
 const i2c = require("i2c-bus");
 const i2c1 = i2c.openSync(1);
+const winston = require('winston')
+
+winston.add(winston.transports.File, { filename: 'wand.log' });
+winston.remove(winston.transports.Console);
+
+winston.log('info', 'Hello log files!', {  
+  someKey: 'some-value'
+})
 
 /**
  * Point class.
@@ -43,7 +51,7 @@ const recognize = new OneDollar();
         }
 
         i2c1.readI2cBlockSync(DS1621_ADDR, 0x36, 16, bfr);
-        // // console.log(bfr);
+        // console.log(bfr);
 
         Ix[0] = bfr[1];
         Iy[0] = bfr[2];
@@ -81,19 +89,24 @@ const recognize = new OneDollar();
             // If we have waited long enought, we try to recognize the queue
             let latestTimeStamp = new Date().getTime();
             if (latestTimeStamp - queue[0].time.getTime() > minGestureTime) {
-                // console.log("Buffer size " + queue.length + ". Calling recognize");
+                winston.debug("Buffer size " + queue.length + ". Calling recognize");
                 let pointsbfr = queue.map(function(p) {
                     return p.point;
                 });
                 let result = recognize.Recognize(pointsbfr);
-                // console.log(JSON.stringify(result));
+                winston.debug(JSON.stringify(result));
 
                 // If we have a good result - Jackpot
                 if (result.Score > .85) {
-                    // console.log(JSON.stringify(pointsbfr));
-                    // console.log(result.Name + " recognized with a confidence of " + result.Score);
-                    queue.length = 0; // Empty the queue.
-                    running = false;
+                    let gestures = [];
+                    gestures.push({"name": result.Name, "points": JSON.stringify(pointsbfr)});
+
+                    winston.info(result.Name + " recognized with a confidence of " + result.Score);
+                    winston.info(JSON.stringify(gestures));
+                    // ToDo: based on the result, this is where we should do intesting activities in the window.
+
+                    queue.length = 0; // Empty the queue for the next run
+                    running = false; // We are stopping the loop at this time in order to debug.
                 } else {
                     // check to see if we should we shift the queue.
                     // Loop through the queue checking each element to see if it is older than 2500 ms (minGestureTime).
@@ -101,7 +114,7 @@ const recognize = new OneDollar();
                     // then short circuit the loop.
                     for(let j = 0; j < queue.length; j++) {
                         if (latestTimeStamp - queue[j].time.getTime() < minGestureTime || j === queue.length -1) {
-                            // console.log("Truncating the first " + j + " elements from the buffer size " + queue.length);
+                            winston.debug("Truncating the first " + j + " elements from the buffer size " + queue.length);
                             queue.splice(0, j-1);
                             break; // Short Circuit the for loop
                         }
