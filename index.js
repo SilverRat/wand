@@ -1,13 +1,9 @@
 const i2c = require("i2c-bus");
 const i2c1 = i2c.openSync(1);
-const winston = require('winston')
+const winston = require("winston");
 
-winston.add(winston.transports.File, { filename: 'wand.log' });
+winston.add(winston.transports.File, {filename: "wand.log"});
 winston.remove(winston.transports.Console);
-
-winston.log('info', 'Hello log files!', {  
-  someKey: 'some-value'
-})
 
 /**
  * Point class.
